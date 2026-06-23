@@ -44,7 +44,7 @@ func ActiveScrapper(c *echo.Context) error  {
 	usePlaywright := cfg.Headless || true
 
 	if usePlaywright {
-		bm = browser.NewManager(cfg.Headless)
+		bm = browser.NewManager(cfg.Headless, cfg.BrowserBinPath)
 		if err := bm.Start(); err != nil {
 			logger.Error("failed to start browser manager", "error", err)
 			os.Exit(1)

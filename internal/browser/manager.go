@@ -3,6 +3,7 @@ package browser
 import (
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -17,14 +18,16 @@ type Manager struct {
 	poolSize    int
 	idleTimeout time.Duration
 	headless    bool
+	browserPath string
 	closed      bool
 }
 
-func NewManager(headless bool) *Manager {
+func NewManager(headless bool, browserPath string) *Manager {
 	return &Manager{
 		poolSize:    3,
 		idleTimeout: 20 * time.Minute,
 		headless:    headless,
+		browserPath: browserPath,
 	}
 }
 
@@ -34,6 +37,11 @@ func (m *Manager) Start() error {
 
 	if m.pw != nil {
 		return nil
+	}
+
+	if m.browserPath != "" {
+		os.Setenv("PLAYWRIGHT_BROWSERS_PATH", m.browserPath)
+		log.Printf("using PLAYWRIGHT_BROWSERS_PATH: %s", m.browserPath)
 	}
 
 	if err := playwright.Install(); err != nil {
@@ -55,7 +63,8 @@ func (m *Manager) Start() error {
 	}
 	m.browser = browser
 
-	log.Println("browser manager started")
+	execPath := pw.Chromium.ExecutablePath()
+	log.Printf("browser manager started (path: %s, headless: %v)", execPath, m.headless)
 	return nil
 }
 

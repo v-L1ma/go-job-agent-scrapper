@@ -7,22 +7,23 @@ import (
 )
 
 type Config struct {
-	PostgresDSN              string
-	Headless                 bool
-	IntervalMinutes          int
-	MaxJobsPerExecution      int
-	MaxApplicationsPerDay    int
-	MaxLinkedInJobsPerQuery  int
-	MaxGupyJobsPerQuery      int
+	PostgresDSN               string
+	Headless                  bool
+	IntervalMinutes           int
+	MaxJobsPerExecution       int
+	MaxApplicationsPerDay     int
+	MaxLinkedInJobsPerQuery   int
+	MaxGupyJobsPerQuery       int
 	MaxVagasComBrJobsPerQuery int
 	MaxGreenhouseJobsPerQuery int
-	LiAtCookie               string
-	EasyApplyOnly            bool
-	MinDelayMs               int
-	MaxDelayMs               int
-	RetryCount               int
-	ScreenshotsPath          string
-	LogLevel                 string
+	LiAtCookie                string
+	EasyApplyOnly             bool
+	MinDelayMs                int
+	MaxDelayMs                int
+	RetryCount                int
+	ScreenshotsPath           string
+	LogLevel                  string
+	BrowserBinPath            string
 }
 
 func getEnv(key, fallback string) string {
@@ -68,6 +69,7 @@ func Load() *Config {
 		RetryCount:                getEnvInt("RETRY_COUNT", 2),
 		ScreenshotsPath:           getEnv("SCREENSHOTS_PATH", "./screenshots"),
 		LogLevel:                  getEnv("LOG_LEVEL", "info"),
+		BrowserBinPath:            getEnv("PLAYWRIGHT_BROWSERS_PATH", ""),
 	}
 }
 
