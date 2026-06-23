@@ -8,9 +8,9 @@ import (
 )
 
 func RegisterRoutes(e *echo.Echo) {
-	e.GET("/scrappe", handlers.ActiveScrapper)
+	e.GET("/scrapper", handlers.ActiveScrapper)
 
-	e.GET("/home", func(c *echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
+	e.GET("/", func(c *echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"message": "Server is running"})
 	})
 }
