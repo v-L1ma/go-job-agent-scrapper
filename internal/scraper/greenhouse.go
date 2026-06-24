@@ -182,6 +182,10 @@ func (s *GreenhouseScraper) StreamJobs(ctx context.Context, req models.ScrapeReq
 func (s *GreenhouseScraper) randomDelay() {
 	min := s.cfg.MinDelay()
 	max := s.cfg.MaxDelay()
+	if max <= min {
+		time.Sleep(min)
+		return
+	}
 	delay := min + time.Duration(time.Now().UnixNano()%int64(max-min))
 	time.Sleep(delay)
 }
