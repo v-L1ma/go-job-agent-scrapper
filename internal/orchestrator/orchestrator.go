@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"sync"
 	"time"
 
@@ -95,8 +96,10 @@ func (o *Orchestrator) Execute(ctx context.Context) error {
 	}
 
 	totalJobs := 0
-	allErrors := make([]string, 0)
+	const maxErrors = 50
+	allErrors := make([]string, 0, maxErrors)
 	queryErrors := make(map[string][]string)
+	platformTimeout := 10 * time.Minute
 
 	for _, queryCtx := range contexts {
 		select {
@@ -124,6 +127,11 @@ func (o *Orchestrator) Execute(ctx context.Context) error {
 				scraperImpl, ok := o.scrapers[platform]
 				if !ok {
 					o.logger.Warn("scraper not found in map", "platform", platform)
+					continue
+				}
+
+				if scraperImpl == nil {
+					o.logger.Debug("scraper not available (nil), skipping", "platform", platform)
 					continue
 				}
 
@@ -159,8 +167,9 @@ func (o *Orchestrator) Execute(ctx context.Context) error {
 				}
 
 				platformJobCount := 0
+				platformCtx, platformCancel := context.WithTimeout(ctx, platformTimeout)
 
-				err := o.runWithRetry(ctx, scraperImpl, req, func(job models.ScrapedJob) bool {
+				err := o.runWithRetry(platformCtx, scraperImpl, req, func(job models.ScrapedJob) bool {
 					saved, saveErr := o.repo.SaveJob(ctx, &job, queryCtx.QueryID, userState, counters, queryCtx.ExcludeKeywords)
 					if saveErr != nil {
 						o.logger.Error("save job", "error", saveErr)
@@ -172,6 +181,7 @@ func (o *Orchestrator) Execute(ctx context.Context) error {
 					}
 					return platformJobCount < platformMax
 				})
+				platformCancel()
 
 				o.logger.Info("platform finished",
 					"platform", platform,
@@ -183,7 +193,9 @@ func (o *Orchestrator) Execute(ctx context.Context) error {
 
 				if err != nil {
 					errMsg := fmt.Sprintf("[%s] key %s: %v", platform, kw, err)
-					allErrors = append(allErrors, errMsg)
+					if len(allErrors) < maxErrors {
+						allErrors = append(allErrors, errMsg)
+					}
 					queryErrors[string(platform)] = append(queryErrors[string(platform)], errMsg)
 					o.logger.Error("scraper failed", "platform", platform, "keyword", kw, "error", err)
 				}
@@ -193,6 +205,8 @@ func (o *Orchestrator) Execute(ctx context.Context) error {
 		if err := o.repo.UpdateUserSearchQueryLimits(ctx, queryCtx.QueryID, counters.GetPlatformCounters()); err != nil {
 			o.logger.Error("update query limits", "query_id", queryCtx.QueryID, "error", err)
 		}
+
+		runtime.GC()
 	}
 
 	o.logger.Info("orchestration complete",

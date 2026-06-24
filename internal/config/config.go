@@ -24,6 +24,7 @@ type Config struct {
 	ScreenshotsPath           string
 	LogLevel                  string
 	BrowserBinPath            string
+	DisableBrowserScrapers    bool
 }
 
 func getEnv(key, fallback string) string {
@@ -70,6 +71,7 @@ func Load() *Config {
 		ScreenshotsPath:           getEnv("SCREENSHOTS_PATH", "./screenshots"),
 		LogLevel:                  getEnv("LOG_LEVEL", "info"),
 		BrowserBinPath:            getEnv("PLAYWRIGHT_BROWSERS_PATH", ""),
+		DisableBrowserScrapers:    getEnvBool("DISABLE_BROWSER_SCRAPERS", false),
 	}
 }
 

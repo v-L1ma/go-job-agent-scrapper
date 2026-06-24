@@ -41,16 +41,12 @@ func ActiveScrapper(c *echo.Context) error  {
 	repo := database.NewRepository(dbPool)
 
 	var bm *browser.Manager
-	usePlaywright := cfg.Headless || true
 
-	if usePlaywright {
+	if !cfg.DisableBrowserScrapers {
 		bm = browser.NewManager(cfg.Headless, cfg.BrowserBinPath)
-		if err := bm.Start(); err != nil {
-			logger.Error("failed to start browser manager", "error", err)
-			os.Exit(1)
-		}
-		defer bm.Close()
-		logger.Info("browser manager started")
+		logger.Info("browser manager created (will start per execution cycle)")
+	} else {
+		logger.Info("browser scrapers disabled via DISABLE_BROWSER_SCRAPERS")
 	}
 
 	gupyScraper := scraper.NewGupyScraper(cfg, logger)
@@ -69,7 +65,7 @@ func ActiveScrapper(c *echo.Context) error  {
 		vagasScraper, linkedInScraper,
 	)
 
-	sched := scheduler.New(cfg, orch, logger)
+	sched := scheduler.New(cfg, orch, bm, logger)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

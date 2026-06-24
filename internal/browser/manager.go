@@ -24,7 +24,7 @@ type Manager struct {
 
 func NewManager(headless bool, browserPath string) *Manager {
 	return &Manager{
-		poolSize:    3,
+		poolSize:    1,
 		idleTimeout: 20 * time.Minute,
 		headless:    headless,
 		browserPath: browserPath,
@@ -56,6 +56,14 @@ func (m *Manager) Start() error {
 
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 		Headless: playwright.Bool(m.headless),
+		Args: []string{
+			"--single-process",
+			"--disable-gpu",
+			"--no-sandbox",
+			"--disable-dev-shm-usage",
+			"--disable-setuid-sandbox",
+			"--js-flags=--max-old-space-size=256",
+		},
 	})
 	if err != nil {
 		pw.Stop()
@@ -132,10 +140,14 @@ func (m *Manager) Close() {
 
 	if m.browser != nil {
 		m.browser.Close()
+		m.browser = nil
 	}
 	if m.pw != nil {
 		m.pw.Stop()
+		m.pw = nil
 	}
+
+	m.closed = false
 
 	log.Println("browser manager closed")
 }

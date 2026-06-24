@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -107,13 +106,7 @@ func (s *GreenhouseScraper) StreamJobs(ctx context.Context, req models.ScrapeReq
 			s.logger.Error("fetch greenhouse", "company", company, "error", err)
 			continue
 		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			s.logger.Error("read body", "company", company, "error", err)
-			continue
-		}
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			s.logger.Warn("greenhouse non-200 response",
@@ -125,7 +118,7 @@ func (s *GreenhouseScraper) StreamJobs(ctx context.Context, req models.ScrapeReq
 		}
 
 		var result greenhouseResponse
-		if err := json.Unmarshal(body, &result); err != nil {
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			s.logger.Error("parse greenhouse", "company", company, "error", err)
 			continue
 		}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -149,19 +148,14 @@ func (s *GupyScraper) fetchKeyword(ctx context.Context, keyword, location string
 		if err != nil {
 			return fmt.Errorf("fetch gupy: %w", err)
 		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return fmt.Errorf("read body: %w", err)
-		}
+		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("gupy API returned status %d for keyword %s", resp.StatusCode, keyword)
 		}
 
 		var result gupyResponse
-		if err := json.Unmarshal(body, &result); err != nil {
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			return fmt.Errorf("parse gupy response: %w", err)
 		}
 

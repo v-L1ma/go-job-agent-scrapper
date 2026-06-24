@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime/debug"
 
 	"job-scrapper/internal/routes"
 
@@ -17,6 +18,8 @@ func getPort() string {
 }
 
 func main() {
+  debug.SetMemoryLimit(400 * 1024 * 1024)
+
   e := echo.New()
 
   e.Use(middleware.RequestLogger())

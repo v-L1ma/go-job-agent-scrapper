@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"job-scrapper/internal/browser"
 	"job-scrapper/internal/config"
 	"job-scrapper/internal/orchestrator"
 )
@@ -13,15 +14,17 @@ import (
 type Scheduler struct {
 	cfg          *config.Config
 	orchestrator *orchestrator.Orchestrator
+	bm           *browser.Manager
 	logger       *slog.Logger
 	stopCh       chan struct{}
 	running      bool
 }
 
-func New(cfg *config.Config, orch *orchestrator.Orchestrator, logger *slog.Logger) *Scheduler {
+func New(cfg *config.Config, orch *orchestrator.Orchestrator, bm *browser.Manager, logger *slog.Logger) *Scheduler {
 	return &Scheduler{
 		cfg:          cfg,
 		orchestrator: orch,
+		bm:           bm,
 		logger:       logger.With("component", "scheduler"),
 		stopCh:       make(chan struct{}),
 	}
@@ -61,6 +64,17 @@ func (s *Scheduler) runOnce(ctx context.Context) error {
 	if s.orchestrator.IsRunning() {
 		s.logger.Warn("previous execution still in progress, skipping")
 		return nil
+	}
+
+	if s.bm != nil {
+		s.logger.Info("starting browser manager")
+		if err := s.bm.Start(); err != nil {
+			return fmt.Errorf("start browser: %w", err)
+		}
+		defer func() {
+			s.bm.Close()
+			s.logger.Info("browser manager closed after execution")
+		}()
 	}
 
 	start := time.Now()
